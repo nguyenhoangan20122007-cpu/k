@@ -1,337 +1,392 @@
--- PHẦN 1 : THIẾT KẾ CSDL VÀ CHÈN DỮ LIỆU
+-- Tạo cơ sở dữ liệu
+CREATE DATABASE Library_Management;
+USE Library_Management;
 
--- tạo data base 
-CREATE DATABASE Test_Exam;
-USE Test_Exam;
-
--- tạo bảng Guests
-CREATE TABLE Guests (
-    guest_id INT PRIMARY KEY,
+-- =========================
+-- Tạo bảng Readers
+-- =========================
+CREATE TABLE Readers (
+    reader_id INT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    phone VARCHAR(20) NOT NULL UNIQUE,
-    loyalty_points INT DEFAULT 0 CHECK (loyalty_points >= 0)
+    phone_number VARCHAR(20) NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- tạo bảng Guest_Profiles 
-CREATE TABLE Guest_Profiles (
-    profile_id INT PRIMARY KEY,
-    guest_id INT,
-    address VARCHAR(255) NOT NULL,
-    birthday DATE NOT NULL,
-    national_id VARCHAR(20) NOT NULL UNIQUE,
-    CONSTRAINT fk_profile_guest
-    FOREIGN KEY (guest_id)
-    REFERENCES Guests(guest_id)
+-- =========================
+-- Tạo bảng Membership_Details
+-- =========================
+CREATE TABLE Membership_Details (
+    card_id VARCHAR(20) PRIMARY KEY,
+    reader_id INT UNIQUE,
+    card_rank ENUM('Standard', 'VIP'),
+    expiry_date DATE NOT NULL,
+    citizen_id VARCHAR(20) NOT NULL UNIQUE,
+    
+    FOREIGN KEY (reader_id) REFERENCES Readers(reader_id)
 );
 
-
--- tạo bảng Rooms
-CREATE TABLE Rooms (
-    room_id INT PRIMARY KEY,
-    room_name VARCHAR(100) NOT NULL,
-    room_type ENUM('Standard', 'Deluxe', 'Suite') NOT NULL,
-    price_per_night DECIMAL(12,2) NOT NULL
-    CHECK (price_per_night > 0),
-    room_status ENUM(
-        'Available',
-        'Occupied',
-        'Maintenance'
-    ) NOT NULL
+-- =========================
+-- Tạo bảng Categories
+-- =========================
+CREATE TABLE Categories (
+    category_id INT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT NOT NULL
 );
 
--- tạo bảng Bookings 
-CREATE TABLE Bookings (
-    booking_id INT PRIMARY KEY,
-    guest_id INT,
-    room_id INT,
-    check_in_date DATETIME NOT NULL,
-    check_out_date DATETIME NOT NULL,
-    total_charge DECIMAL(12,2) NOT NULL
-    CHECK (total_charge > 0),
-    booking_status ENUM(
-        'Pending',
-        'Completed',
-        'Cancelled'
-    ) NOT NULL,
-    CONSTRAINT chk_booking_date
-    CHECK (check_out_date > check_in_date),
-    CONSTRAINT fk_booking_guest
-    FOREIGN KEY (guest_id)
-    REFERENCES Guests(guest_id),
-    CONSTRAINT fk_booking_room
-    FOREIGN KEY (room_id)
-    REFERENCES Rooms(room_id)
+-- =========================
+-- Tạo bảng Books
+-- =========================
+CREATE TABLE Books (
+    book_id INT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL UNIQUE,
+    author VARCHAR(100) NOT NULL,
+    category_id INT,
+    price DECIMAL(10,2) NOT NULL CHECK (price > 0),
+    stock_quantity INT NOT NULL CHECK (stock_quantity >= 0),
+
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
 );
 
--- tạo bảng Room_Log
-CREATE TABLE Room_Log (
-    log_id INT PRIMARY KEY,
-    room_id INT,
-    action_type ENUM(
-        'Check-in',
-        'Check-out',
-        'Maintenance',
-        'Cancelled'
-    ) NOT NULL,
-    change_note VARCHAR(255) NOT NULL,
-    logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_log_room
-    FOREIGN KEY (room_id)
-    REFERENCES Rooms(room_id)
+-- =========================
+-- Tạo bảng Loan_Records
+-- =========================
+CREATE TABLE Loan_Records (
+    loan_id INT PRIMARY KEY,
+    reader_id INT,
+    book_id INT,
+    borrow_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    return_date DATE,
+
+    FOREIGN KEY (reader_id) REFERENCES Readers(reader_id),
+    FOREIGN KEY (book_id) REFERENCES Books(book_id),
+
+    CHECK (due_date > borrow_date)
 );
 
-
--- THÊM DỮ LIỆU THEO BẢNG DỮ LIỆU MẪU 
-INSERT INTO Guests
+-- =========================
+-- Chèn dữ liệu vào Readers
+-- =========================
+INSERT INTO Readers (
+    reader_id,
+    full_name,
+    email,
+    phone_number,
+    created_at
+)
 VALUES
-(1, 'Nguyen Van A', 'anv@gmail.com', '901234567', 150),
-(2, 'Tran Thi B', 'btt@gmail.com', '912345678', 500),
-(3, 'Le Van C', 'cle@yahoo.com', '922334455', 0),
-(4, 'Pham Minh D', 'dpham@hotmail.com', '933445566', 1000),
-(5, 'Hoang Anh E', 'ehoang@gmail.com', '944556677', 20);
+(1, 'Nguyen Van A', 'anv@gmail.com', '901234567', '2022-01-15'),
+(2, 'Tran Thi B', 'btt@gmail.com', '912345678', '2022-05-20'),
+(3, 'Le Van C', 'cle@yahoo.com', '922334455', '2023-02-10'),
+(4, 'Pham Minh D', 'dpham@hotmail.com', '933445566', '2023-11-05'),
+(5, 'Hoang Anh E', 'ehoang@gmail.com', '944556677', '2023-01-12');
 
-INSERT INTO Guest_Profiles
+-- =========================
+-- Chèn dữ liệu vào Membership_Details
+-- =========================
+INSERT INTO Membership_Details (
+    card_id,
+    reader_id,
+    card_rank,
+    expiry_date,
+    citizen_id
+)
 VALUES
-(101, 1, '123 Le Loi, Q1, HCM', '1990-05-15', '12345'),
-(102, 2, '456 Nguyen Hue, Q1, HCM', '1985-10-20', '23456'),
-(103, 3, '789 Phan Chu Trinh, Da Nang', '1995-12-01', '34567'),
-(104, 4, '101 Hoang Hoa Tham, Ha Noi', '1988-03-25', '45678'),
-(105, 5, '202 Tran Hung Dao, Can Tho', '2000-07-10', '56789');
+('CARD-001', 1, 'Standard', '2025-01-15', '123456789'),
+('CARD-002', 2, 'VIP', '2025-05-20', '234567890'),
+('CARD-003', 3, 'Standard', '2024-02-10', '345678901'),
+('CARD-004', 4, 'VIP', '2025-11-05', '456789012'),
+('CARD-005', 5, 'Standard', '2026-01-12', '567890123');
 
-INSERT INTO Rooms
+-- =========================
+-- Chèn dữ liệu vào Categories
+-- =========================
+INSERT INTO Categories (
+    category_id,
+    category_name,
+    description
+)
 VALUES
-(1, 'Room 101', 'Standard', 100000, 'Available'),
-(2, 'Room 202', 'Deluxe', 5000000, 'Occupied'),
-(3, 'Room 303', 'Suite', 300000, 'Available'),
-(4, 'Room 104', 'Standard', 200000, 'Occupied'),
-(5, 'Room 205', 'Deluxe', 2000000, 'Maintenance');
+(1, 'IT', 'Sach ve cong nghe thong tin va lap trinh'),
+(2, 'Kinh Te', 'Sach kinh doanh tai chinh khoi nghiep'),
+(3, 'Van Hoc', 'Tieu thuyet truyen ngan tho'),
+(4, 'Ngoai Ngu', 'Sach hoc tieng Anh Nhat Han'),
+(5, 'Lich Su', 'Sach nghien cuu lich su van hoa');
 
-INSERT INTO Bookings
+-- =========================
+-- Chèn dữ liệu vào Books
+-- =========================
+INSERT INTO Books (
+    book_id,
+    title,
+    author,
+    category_id,
+    price,
+    stock_quantity
+)
 VALUES
-(1001, 1, 1,'2023-11-15 10:30:00','2023-11-18 12:00:00',300000,'Completed'),
-(1002, 2, 2,'2023-12-01 14:20:00','2023-12-04 12:00:00',20000000,'Completed'),
-(1003, 1, 2,'2021-01-10 09:15:00','2021-01-11 12:00:00',5000000,'Pending'),
-(1004, 3, 3,'2023-05-20 16:45:00','2023-05-22 12:00:00',900000,'Cancelled'),
-(1005, 4, 4,'2024-01-18 11:00:00','2024-01-20 12:00:00',8000000,'Completed');
+(1, 'Clean Code', 'Robert C. Martin', 1, 450000, 10),
+(2, 'Dac Nhan Tam', 'Dale Carnegie', 2, 150000, 50),
+(3, 'Harry Potter 1', 'J.K. Rowling', 3, 250000, 5),
+(4, 'IELTS Reading', 'Cambridge', 4, 180000, 0),
+(5, 'Dai Viet Su Ky', 'Le Van Huu', 5, 300000, 20);
 
-INSERT INTO Room_Log
+-- =========================
+-- Chèn dữ liệu vào Loan_Records
+-- =========================
+INSERT INTO Loan_Records (
+    loan_id,
+    reader_id,
+    book_id,
+    borrow_date,
+    due_date,
+    return_date
+)
 VALUES
-(1, 1, 'Check-in','Guest checked in','2023-10-01 08:00:00'),
-(2, 1, 'Check-out','Guest checked out','2023-11-15 10:35:00'),
-(3, 4, 'Maintenance','Room report as damage','2023-11-20 15:00:00'),
-(4, 2, 'Check-in','New guest arrival','2023-11-25 09:00:00'),
-(5, 3, 'Maintenance','Schedule maintenance','2023-12-01 13:00:00');
+(101, 1, 1, '2023-11-15', '2023-11-22', '2023-11-20'),
+(102, 2, 2, '2023-12-01', '2023-12-08', '2023-12-05'),
+(103, 1, 3, '2024-01-10', '2024-01-17', NULL),
+(104, 3, 4, '2023-05-20', '2023-05-27', NULL),
+(105, 4, 1, '2023-01-18', '2024-01-25', NULL);
 
+-- =========================
+-- Gia hạn thêm 7 ngày cho sách Van Hoc chưa trả
+-- =========================
+UPDATE Loan_Records lr
+JOIN Books b 
+ON lr.book_id = b.book_id
+JOIN Categories c 
+ON b.category_id = c.category_id
+SET lr.due_date = DATE_ADD(lr.due_date, INTERVAL 7 DAY)
+WHERE c.category_name = 'Van Hoc'
+AND lr.return_date IS NULL;
 
+-- =========================
+-- Xóa hồ sơ đã trả trước tháng 10/2023
+-- =========================
+DELETE FROM Loan_Records
+WHERE return_date IS NOT NULL
+AND borrow_date < '2023-10-01';
 
--- viết câu lệnh UPDATE cộng 200 điểm tích lũy cho các khách hàng có đuôi là '@gmail.com'
-UPDATE Guests
-SET loyalty_points = loyalty_points + 200
-WHERE email LIKE '%@gmail.com';
+-- =========================
+-- Câu 1:
+-- Sách thuộc danh mục IT và giá > 200000
+-- =========================
+SELECT 
+    b.book_id,
+    b.title,
+    b.price
+FROM Books b
+JOIN Categories c 
+ON b.category_id = c.category_id
+WHERE c.category_name = 'IT'
+AND b.price > 200000;
 
--- viết câu lệnh DELETE xóa các bản ghi trong Room_Log có logged_at trước ngày 10/11/2023
-DELETE FROM Room_Log
-WHERE logged_at < '2023-11-10';
+-- =========================
+-- Câu 2:
+-- Độc giả tạo tài khoản năm 2022 và dùng gmail
+-- =========================
+SELECT
+    reader_id,
+    full_name,
+    email
+FROM Readers
+WHERE YEAR(created_at) = 2022
+AND email LIKE '%@gmail.com';
 
--- PHẦN 2 : TRUY VẤN DỮ LIỆU CƠ BẢN
--- câu 1 : Lấy danh sách phòng có giá thuê > 1000000 hoặc room_status = 'Maintenance' hoặc room_type = 'Suite'
-SELECT room_name, price_per_night, room_status
-FROM Rooms
-WHERE price_per_night > 1000000
-   OR room_status = 'Maintenance'
-   OR room_type = 'Suite';
-   
-   
-   
--- câu 2 : lấy thông tin khách có email thuộc domain   '@gmail.com'  và loy-points nằm trong khoảng từ 50-300
-SELECT full_name, email
-FROM Guests
-WHERE email LIKE '%@gmail.com'
-AND loyalty_points BETWEEN 50 AND 300;
+-- =========================
+-- Câu 3:
+-- Lấy sách từ vị trí thứ 3 đến thứ 7 giá cao nhất
+-- =========================
+SELECT
+    book_id,
+    title,
+    price
+FROM Books
+ORDER BY price DESC
+LIMIT 5 OFFSET 2;
 
+-- =========================
+-- Nâng cao Câu 1:
+-- Danh sách phiếu chưa trả
+-- =========================
+SELECT
+    lr.loan_id,
+    r.full_name,
+    b.title,
+    lr.borrow_date,
+    lr.return_date
+FROM Loan_Records lr
+JOIN Readers r
+ON lr.reader_id = r.reader_id
+JOIN Books b
+ON lr.book_id = b.book_id
+WHERE lr.return_date IS NULL;
 
--- câu 3 : Hiển thị ba booking  có total_charge cao nhất, sắp xếp theo thứ tự giảm dần và bỏ qua booking cao nhất 
-SELECT *
-FROM Bookings
-ORDER BY total_charge DESC
-LIMIT 3 OFFSET 1;
+-- =========================
+-- Nâng cao Câu 2:
+-- Tổng tồn kho từng danh mục > 10
+-- =========================
+SELECT
+    c.category_name,
+    SUM(b.stock_quantity) AS total_stock
+FROM Categories c
+JOIN Books b
+ON c.category_id = b.category_id
+GROUP BY c.category_name
+HAVING SUM(b.stock_quantity) > 10;
 
--- PHẦN 3 : TRUY VẤN DỮ LIỆU NÂNG CAO
--- câu 1 : viêt câu lệnh truy vấn lấy ra các thông tin lịch đặt phòng
-SELECT g.full_name, gp.national_id, b.booking_id, b.check_in_date, b.total_charge
-FROM Guests g
-JOIN Guest_Profiles gp
-ON g.guest_id = gp.guest_id
-JOIN Bookings b
-ON g.guest_id = b.guest_id;
-
-
--- câu 2 : tính tổng số tiền thanh toán của mỗi khách . Hiển thị các khách có tổng chi tiêu của booking hoàn thành > 2000000
-SELECT g.guest_id, g.full_name,
-    SUM(b.total_charge) AS total_spending
-FROM Guests g
-JOIN Bookings b
-ON g.guest_id = b.guest_id
-WHERE b.booking_status = 'Completed'
-GROUP BY g.guest_id, g.full_name
-HAVING SUM(b.total_charge) > 20000000;
-
-
--- câu 3: tìm thông tin phòng có price_per_night cao nhất trong danh sách các phòng từng xuất hiện trong booking thành công
-SELECT r.*
-FROM Rooms r
-JOIN Bookings b
-ON r.room_id = b.room_id
-WHERE b.booking_status = 'Completed'
-AND r.price_per_night = (
-    SELECT MAX(r2.price_per_night)
-    FROM Rooms r2
-    JOIN Bookings b2
-    ON r2.room_id = b2.room_id
-    WHERE b2.booking_status = 'Completed'
+-- =========================
+-- Nâng cao Câu 3:
+-- Độc giả VIP chưa từng mượn sách > 300000
+-- =========================
+SELECT
+    r.full_name
+FROM Readers r
+JOIN Membership_Details md
+ON r.reader_id = md.reader_id
+WHERE md.card_rank = 'VIP'
+AND r.reader_id NOT IN (
+    SELECT lr.reader_id
+    FROM Loan_Records lr
+    JOIN Books b
+    ON lr.book_id = b.book_id
+    WHERE b.price > 300000
 );
 
--- INDEX VÀ VIEW
--- câu 1 : Tạo Composite Index tên idx_booking_status_cgh trên bảng Bookings
-CREATE INDEX idx_booking_status_cgh
-ON Bookings(booking_status, check_in_date);
+-- =========================
+-- Tạo Composite Index
+-- =========================
+CREATE INDEX idx_loan_dates
+ON Loan_Records (borrow_date, return_date);
 
+-- =========================
+-- Tạo View sách quá hạn chưa trả
+-- =========================
+CREATE VIEW vw_overdue_loans AS
+SELECT
+    lr.loan_id,
+    r.full_name,
+    b.title,
+    lr.borrow_date,
+    lr.due_date
+FROM Loan_Records lr
+JOIN Readers r
+ON lr.reader_id = r.reader_id
+JOIN Books b
+ON lr.book_id = b.book_id
+WHERE CURDATE() > lr.due_date
+AND lr.return_date IS NULL;
 
--- câu 2 : Tạo View vw_guest_booking_stats 
-CREATE VIEW vw_guest_booking_stats AS
-SELECT g.full_name AS guest_name,
-    COUNT(b.booking_id) AS total_bookings,
-    SUM(
-        CASE
-            WHEN b.booking_status <> 'Cancelled'
-            THEN b.total_charge
-            ELSE 0
-        END
-    ) AS total_paid
-FROM Guests g
-LEFT JOIN Bookings b
-ON g.guest_id = b.guest_id
-GROUP BY g.guest_id, g.full_name;
-
-
--- PHẦN 5 : TRIGGER 
--- câu 1 : Tạo trigger trg_after_update_booking_status 
-
+-- =========================
+-- Trigger tự động trừ tồn kho khi mượn sách
+-- =========================
 DELIMITER $$
 
-CREATE TRIGGER trg_after_update_booking_status
-AFTER UPDATE ON Bookings
+CREATE TRIGGER trg_after_loan_insert
+AFTER INSERT ON Loan_Records
 FOR EACH ROW
 BEGIN
-
-    IF NEW.booking_status = 'Completed'
-       AND OLD.booking_status <> 'Completed'
-    THEN
-
-        INSERT INTO Room_Log ( room_id, action_type, change_note, logged_at)
-        VALUES ( NEW.room_id, 'Check-out', 'Booking Completed',
-            NOW());
-
-    END IF;
-
-END $$
+    UPDATE Books
+    SET stock_quantity = stock_quantity - 1
+    WHERE book_id = NEW.book_id;
+END$$
 
 DELIMITER ;
 
-
--- câu 2 tạo trigger trg_update_loyalty_points
+-- =========================
+-- Trigger ngăn xóa độc giả đang mượn sách
+-- =========================
 DELIMITER $$
 
-CREATE TRIGGER trg_update_loyalty_points
-AFTER INSERT ON Bookings
+CREATE TRIGGER trg_prevent_delete_active_reader
+BEFORE DELETE ON Readers
 FOR EACH ROW
 BEGIN
-
-    IF NEW.booking_status = 'Completed' THEN
-
-        UPDATE Guests
-        SET loyalty_points = loyalty_points + FLOOR(NEW.total_charge / 1000000) * 2
-        WHERE guest_id = NEW.guest_id;
-
+    IF EXISTS (
+        SELECT 1
+        FROM Loan_Records
+        WHERE reader_id = OLD.reader_id
+        AND return_date IS NULL
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Khong the xoa doc gia dang muon sach';
     END IF;
-
-END $$
+END$$
 
 DELIMITER ;
 
-
--- PHẦN 6 : STORED PROCEDURE 
--- câu 1 : Viết Procedure sp_get_room_status nhận vào room_id
+-- =========================
+-- Procedure kiểm tra tình trạng sách
+-- =========================
 DELIMITER $$
 
-CREATE PROCEDURE sp_get_room_status (
-    IN p_room_id INT
+CREATE PROCEDURE sp_check_availability(
+    IN p_book_id INT,
+    OUT p_message VARCHAR(50)
 )
 BEGIN
+    DECLARE v_stock INT;
 
-    DECLARE v_status VARCHAR(50);
+    SELECT stock_quantity
+    INTO v_stock
+    FROM Books
+    WHERE book_id = p_book_id;
 
-    SELECT room_status
-    INTO v_status
-    FROM Rooms
-    WHERE room_id = p_room_id;
+    IF v_stock = 0 THEN
+        SET p_message = 'Het hang';
 
-    IF v_status = 'Available' THEN
-        SELECT 'Phòng trống' AS message;
+    ELSEIF v_stock > 0 AND v_stock <= 5 THEN
+        SET p_message = 'Sap het';
 
-    ELSEIF v_status = 'Occupied' THEN
-        SELECT 'Đang có khách' AS message;
-
-    ELSEIF v_status = 'Maintenance' THEN
-        SELECT 'Bảo trì' AS message;
-
+    ELSE
+        SET p_message = 'Con hang';
     END IF;
-
-END $$
+END$$
 
 DELIMITER ;
 
-
--- câu 2 : Viết Procedure sp_cancel_booking xử lý hủy đặt phòng an toàn 
+-- =========================
+-- Procedure trả sách có Transaction
+-- =========================
 DELIMITER $$
 
-CREATE PROCEDURE sp_cancel_booking (
-    IN p_booking_id INT
+CREATE PROCEDURE sp_return_book_transaction(
+    IN p_loan_id INT
 )
 BEGIN
-
-    DECLARE v_room_id INT;
-
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-    END;
+    DECLARE v_return_date DATE;
+    DECLARE v_book_id INT;
 
     START TRANSACTION;
 
-    SELECT room_id
-    INTO v_room_id
-    FROM Bookings
-    WHERE booking_id = p_booking_id;
+    SELECT return_date, book_id
+    INTO v_return_date, v_book_id
+    FROM Loan_Records
+    WHERE loan_id = p_loan_id;
 
-    UPDATE Bookings
-    SET booking_status = 'Cancelled'
-    WHERE booking_id = p_booking_id;
+    IF v_return_date IS NOT NULL THEN
 
-    UPDATE Rooms
-    SET room_status = 'Available'
-    WHERE room_id = v_room_id;
+        ROLLBACK;
 
-    INSERT INTO Room_Log (room_id, action_type, change_note,logged_at)
-    VALUES (v_room_id, 'Cancelled', 'Booking Cancelled',NOW());
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Sach da tra roi';
 
-    COMMIT;
+    ELSE
 
-END $$
+        UPDATE Loan_Records
+        SET return_date = CURDATE()
+        WHERE loan_id = p_loan_id;
+
+        UPDATE Books
+        SET stock_quantity = stock_quantity + 1
+        WHERE book_id = v_book_id;
+
+        COMMIT;
+
+    END IF;
+END$$
 
 DELIMITER ;
-
-CALL sp_get_room_status(1);
-
-CALL sp_cancel_booking(1003);
